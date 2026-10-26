@@ -1370,27 +1370,40 @@ function updateVipUI(){
 isVip = checkVipStatus();
 document.getElementById('vipActivateBtn').addEventListener('click', async function(){
   var code = document.getElementById('vipCodeInput').value.trim();
-  if(!code) return alert(currentLang === 'en' ? 'Enter code' : '请输入激活码');
+  if(!code) return showToast(currentLang === 'en' ? 'Enter code' : '请输入激活码', true);
+  
   var btn = this;
   var oldText = btn.textContent;
-  btn.textContent = '...';
+  btn.textContent = '验证中...';
   btn.disabled = true;
-  try{
+
+  try {
     const response = await fetch(API_URL + '/?key=' + encodeURIComponent(code));
     const result = await response.json();
-    if(result.success){
+    
+    if (result.success) {
       var expireTime = new Date(result.expire).getTime();
       localStorage.setItem('hk6_vip_token', code);
       localStorage.setItem('hk6_vip_expire', expireTime);
       isVip = true;
       updateVipUI();
-      showToast('🎉 ' + (currentLang === 'en' ? 'Activated!' : '激活成功，全功能已解锁！'));
-    }else{
-      showToast('❌ ' + (result.msg || '卡密不存在或已失效'), true);
+      
+      setTimeout(() => {
+        showToast('🎉 ' + (currentLang === 'en' ? 'Activated!' : '激活成功，全功能已解锁！'));
+      }, 100);
+      
+    } else {
+      var msg = result.msg || (currentLang === 'en' ? 'Invalid code' : '卡密不存在或已失效');
+      setTimeout(() => {
+        showToast('❌ ' + msg, true);
+      }, 100);
     }
-  }catch(error){
-    showToast('❌ ' + (currentLang === 'en' ? 'Network error' : '网络连接失败'), true);
-  }finally{
+  } catch (error) {
+    console.error('驗證出錯:', error);
+    setTimeout(() => {
+      showToast('❌ ' + (currentLang === 'en' ? 'Network error' : '网络连接失败'), true);
+    }, 100);
+  } finally {
     btn.textContent = oldText;
     btn.disabled = false;
   }
