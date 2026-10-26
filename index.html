@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>六合彩 · 公益版</title>
+<title>六合彩 2.4.0修复导出图片</title>
 <style>
 :root{
 --gold:#f0b429; --gold-2:#ffd76a;
@@ -90,7 +90,7 @@ font-size:16px;font-weight:bold;cursor:pointer;transition:.2s;
 }
 .vip-box button:hover{box-shadow:0 6px 20px rgba(240,180,41,.4)}
 
-/* 資訊及設定 全螢幕彈窗 (暗黑金風格) */
+/* 資訊及設定 全螢幕彈窗 */
 .settings-page{
 position:fixed;top:0;left:0;width:100%;height:100%;
 background:var(--bg); z-index:100000;
@@ -150,7 +150,7 @@ font-size:16px; font-weight:800; color:var(--gold-2); margin-bottom:10px; displa
 .sp-card li{margin-bottom:6px;}
 .sp-card b{color:var(--text); font-weight:600;}
 
-/* 主頁其餘樣式保持不變 */
+/* 主頁其餘樣式 */
 .tab-content{display:none;animation:fadeIn .3s ease}
 .tab-content.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
@@ -455,6 +455,9 @@ flex:1;transition:.2s;user-select:none;
 </style>
 </head>
 <body>
+
+<div class="toast" id="toast"></div>
+
 <div class="vip-mask" id="vipMask">
 <div class="vip-box">
 <div class="vip-close" onclick="document.getElementById('vipMask').style.display='none'">✕</div>
@@ -466,7 +469,7 @@ flex:1;transition:.2s;user-select:none;
 </div>
 </div>
 
-<!-- 資訊及設定 全螢幕彈窗 (暗黑金風格) -->
+<!-- 資訊及設定 -->
 <div class="settings-page" id="settingsPage">
   <div class="sp-header">
     <div class="sp-back" onclick="document.getElementById('settingsPage').style.display='none'">
@@ -513,7 +516,7 @@ flex:1;transition:.2s;user-select:none;
   </div>
 </div>
 
-<!-- 自定義輸入彈窗 (替換原生 prompt) -->
+<!-- 自定義輸入彈窗 -->
 <div id="customPromptMask" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(11,15,22,0.85); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
   <div style="background:var(--panel); width:90%; max-width:400px; border-radius:16px; padding:20px; border:1px solid rgba(240,180,41,.4); box-shadow:0 10px 40px rgba(0,0,0,0.6); animation:fadeIn 0.2s ease;">
     <div id="customPromptMsg" style="color:var(--gold-2); font-size:15px; margin-bottom:12px; font-weight:600; line-height:1.5;"></div>
@@ -526,7 +529,6 @@ flex:1;transition:.2s;user-select:none;
 </div>
 
 <div class="wrap">
-<!-- 左上角設定按鈕 -->
 <div class="settings-btn" onclick="document.getElementById('settingsPage').style.display='flex'" title="資訊及設定">⚙️</div>
 
 <header class="hero">
@@ -846,7 +848,7 @@ flex:1;transition:.2s;user-select:none;
 <div class="nav-item" data-tab="tab-draw"><div class="icon">📝</div><span data-i18n="nav_draw">核对模拟</span></div>
 <div class="nav-item" data-tab="tab-tickets"><div class="icon">📊</div><span data-i18n="nav_tickets">注單分析</span></div>
 </nav>
-<div class="toast" id="toast"></div>
+
 <script>
 (function(){
 'use strict';
@@ -1288,7 +1290,6 @@ function applyLang(){
     var key = el.getAttribute('data-i18n');
     if(dict[key]) el.innerHTML = dict[key];
   });
-  // 重新渲染動態內容
   updateVipUI();
   renderTicketInfo();
   refreshLuckyUI();
@@ -1335,7 +1336,7 @@ function showToast(msg, isError){
   toastEl.classList.toggle('err', !!isError);
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2500);
 }
 
 /* ============ 会员验证 ============ */
@@ -1368,13 +1369,15 @@ function updateVipUI(){
   }
 }
 isVip = checkVipStatus();
+updateVipUI();
+
 document.getElementById('vipActivateBtn').addEventListener('click', async function(){
   var code = document.getElementById('vipCodeInput').value.trim();
   if(!code) return showToast(currentLang === 'en' ? 'Enter code' : '请输入激活码', true);
   
   var btn = this;
   var oldText = btn.textContent;
-  btn.textContent = '验证中...';
+  btn.textContent = '...';
   btn.disabled = true;
 
   try {
@@ -1399,7 +1402,6 @@ document.getElementById('vipActivateBtn').addEventListener('click', async functi
       }, 100);
     }
   } catch (error) {
-    console.error('驗證出錯:', error);
     setTimeout(() => {
       showToast('❌ ' + (currentLang === 'en' ? 'Network error' : '网络连接失败'), true);
     }, 100);
@@ -2614,11 +2616,9 @@ document.getElementById('importCustomTickets').addEventListener('click', async f
   lines.forEach(function(line){
     var raw = line.trim();
     if(!raw) return;
-    // 去除中文、英文字符，只留數字
     var nums = raw.match(/\d+/g);
     if(nums){
       var arr = nums.map(Number).filter(function(n){ return n >= 1 && n <= 49; });
-      // 去除重複並排序
       var uniqueArr = Array.from(new Set(arr)).sort(function(a,b){ return a-b; });
       if(uniqueArr.length >= 2 && uniqueArr.length <= 6){
         newTickets.push(uniqueArr);
@@ -2651,9 +2651,10 @@ document.getElementById('importCustomTickets').addEventListener('click', async f
   document.querySelector('.nav-item[data-tab="tab-tickets"]').click();
 });
 
-/* ============ 导出图片 ============ */
+/* ============ 导出图片（修复版） ============ */
 document.getElementById('exportImageBtn').addEventListener('click', function(){
-  if(TICKETS.length === 0) return showToast('No tickets', true);
+  if(TICKETS.length === 0) return showToast(currentLang === 'en' ? 'No tickets' : '没有注单可导出', true);
+  
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
   var width = 600;
@@ -2662,6 +2663,7 @@ document.getElementById('exportImageBtn').addEventListener('click', function(){
   var padding = 20;
   var footerHeight = isVip ? 40 : 80;
   var height = headerHeight + TICKETS.length * ticketHeight + footerHeight;
+  
   canvas.width = width;
   canvas.height = height;
   ctx.fillStyle = '#0b0f16';
@@ -2672,21 +2674,26 @@ document.getElementById('exportImageBtn').addEventListener('click', function(){
   ctx.fillText(currentLang === 'en' ? 'Mark Six · Tickets' : '六合彩 · 注单', width/2, 40);
   ctx.fillStyle = '#8b98a9';
   ctx.font = '13px sans-serif';
-  ctx.fillText('Time: ' + nowString(), width/2, 70);
-  ctx.fillText('Issue: ' + nextIssue() + ' | Count: ' + TICKETS.length + ' | ' + ballsPerTicket + '/' + ballsPerTicket, width/2, 92);
-  ctx.fillText('Mode: ' + genMode + ' | Lucky: ' + pad(lucky), width/2, 114);
+  var t1 = currentLang === 'en' ? 'Time: ' : '時間：';
+  var t2 = currentLang === 'en' ? 'Issue: ' : '期號：';
+  var t3 = currentLang === 'en' ? ' | Count: ' : ' | 注數：';
+  var t4 = currentLang === 'en' ? ' | Mode: ' : ' | 模式：';
+  var t5 = currentLang === 'en' ? ' | Lucky: ' : ' | 幸運號：';
+  ctx.fillText(t1 + nowString(), width/2, 70);
+  ctx.fillText(t2 + nextIssue() + t3 + TICKETS.length + ' | ' + ballsPerTicket + '/' + ballsPerTicket, width/2, 92);
+  ctx.fillText(t4 + genMode + t5 + pad(lucky), width/2, 114);
   ctx.strokeStyle = 'rgba(255,255,255,.1)';
   ctx.beginPath();
   ctx.moveTo(padding, headerHeight - 5);
   ctx.lineTo(width - padding, headerHeight - 5);
   ctx.stroke();
+  
   TICKETS.forEach(function(t, i){
     var y = headerHeight + i * ticketHeight;
     ctx.fillStyle = '#8b98a9';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText((currentLang === 'en' ? 'Ticket ' : '第 ') + (i+1), padding, y + 20);
-
+   ctx.fillText((currentLang === 'en' ? 'Ticket ' : '第 ') + (i+1) + (currentLang === 'en' ? '' : ' 注'), padding, y + 20);
     var ballStartX = padding + 80;
     var ballRadius = 18;
     var ballSpacing = 42;
@@ -2713,6 +2720,7 @@ document.getElementById('exportImageBtn').addEventListener('click', function(){
       ctx.fillText(pad(n), cx, cy);
     });
   });
+  
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'center';
 
@@ -2735,15 +2743,36 @@ document.getElementById('exportImageBtn').addEventListener('click', function(){
     ctx.font = '11px sans-serif';
     ctx.fillText('For entertainment only', width/2, height - 15);
   }
-  canvas.toBlob(function(blob){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'MarkSix_' + Date.now() + '.png';
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    showToast(isVip ? '✓ Exported' : '✓ Exported (with watermark)');
-  });
+
+  var dataUrl = canvas.toDataURL('image/png');
+  var modal = document.createElement('div');
+  modal.className = 'export-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(11,15,22,0.95);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--panel); width:100%; max-width:400px; padding:20px; border-radius:16px; border:1px solid rgba(240,180,41,.3); max-height: 90vh; overflow-y:auto;';
+
+  var imgElement = document.createElement('img');
+  imgElement.src = dataUrl;
+  imgElement.style.cssText = 'width:100%; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.5); margin-bottom:12px; display:block;';
+  
+  var tipDiv = document.createElement('div');
+  tipDiv.style.cssText = 'font-size:13px; color:var(--muted); margin-bottom:16px; text-align:center;';
+  tipDiv.innerText = currentLang === 'en' ? 'Long press the image above to save' : '請長按上方圖片保存到手機';
+
+  var btnElement = document.createElement('button');
+  btnElement.type = 'button';
+  btnElement.style.cssText = 'width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(180deg,#ffd76a,#f0b429); color:#241a00; font-weight:bold; font-size:15px; cursor:pointer;';
+  btnElement.innerText = currentLang === 'en' ? 'Done' : '完成';
+  btnElement.onclick = function() { modal.remove(); };
+
+  box.appendChild(imgElement);
+  box.appendChild(tipDiv);
+  box.appendChild(btnElement);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+  
+  showToast('✓ ' + (currentLang === 'en' ? 'Image generated' : '圖片已生成'));
 });
 
 /* ============ 单号详细档案 ============ */
@@ -2856,8 +2885,9 @@ document.getElementById('copyTickets').addEventListener('click', function(e){
     '───────────────────────────────'
   ];
   TICKETS.forEach(function(t,i){
-    lines.push('Ticket ' + String(i+1).padStart(2,'0') + ': ' + t.map(pad).join('  '));
-  });
+    lines.push((currentLang === 'en' ? 'Ticket ' : '第 ') + String(i+1).padStart(2,'0') + (currentLang === 'en' ? ': ' : ' 注：') + t.map(pad).join('  '));
+  // ...
+});
   lines.push('═══════════════════════════════');
   copyText(lines.join('\n'), '✓ Copied', e.target);
 });
